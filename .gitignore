@@ -1,0 +1,22 @@
+# Environment
+.env
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# Whisper model cache (downloaded automatically, no need to commit)
+~/.cache/whisper/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp uploads
+tmp/
+uploads/

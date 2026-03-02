@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AudioScript – Audio to Text Transcription</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    /* ═══════════════════════════════════════════════════════════════
+       DESIGN SYSTEM — AudioScript
+       Inspired by bold, playful brand aesthetics (Native Pet / Woofy Crunch)
+       Primary:  Lime Green  (#C4FF2E)
+       Dark:     Deep Navy   (#0F1C35)
+       Accent:   Orange      (#FF5F1F)
+       Support:  Off-white   (#F7FAF0)
+    ═══════════════════════════════════════════════════════════════ */
+
+    /* ─── Tokens ─────────────────────────────────────────────────── */
+    :root {
+      /* Colors */
+      --lime:        #C4FF2E;
+      --lime-pale:   #F0FFB0;
+      --navy:        #0F1C35;
+      --navy-mid:    #1E3050;
+      --orange:      #FF5F1F;
+      --orange-pale: #FFF0E8;
+      --white:       #FFFFFF;
+      --off-white:   #F7FAF0;
+      --gray:        #6B7280;
+      --gray-light:  #E5E7EB;
+
+      /* Typography */
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+      /* Radii */
+      --r-sm:   8px;
+      --r-md:   14px;
+      --r-lg:   22px;
+      --r-pill: 999px;
+
+      /* Shadows — flat "offset" style like the dog website */
+      --shadow-sm:  3px 3px 0 var(--navy);
+      --shadow-md:  5px 5px 0 var(--navy);
+      --shadow-lg:  7px 7px 0 var(--navy);
+    }
+
+    /* ─── Reset ──────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--white);
+      color: var(--navy);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── Navigation ─────────────────────────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--white);
+      border-bottom: 2px solid var(--navy);
+      padding: 0 48px; height: 66px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo {
+      font-size: 1.35rem; font-weight: 900; color: var(--navy);
+      letter-spacing: -0.04em; text-decoration: none;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .nav-logo-dot { color: var(--orange); }
+    .nav-links {
+      display: flex; align-items: center; gap: 32px; list-style: none;
+    }
+    .nav-links a {
+      font-size: 0.88rem; font-weight: 600; color: var(--navy);
+      text-decoration: none; opacity: 0.55;
+      transition: opacity 0.15s;
+    }
+    .nav-links a:hover { opacity: 1; }
+    .nav-cta {
+      background: var(--lime); color: var(--navy);
+      border: 2px solid var(--navy); border-radius: var(--r-pill);
+      padding: 9px 22px; font-size: 0.88rem; font-weight: 800;
+      cursor: pointer; letter-spacing: -0.01em;
+      transition: transform 0.12s, box-shadow 0.12s;
+      box-shadow: var(--shadow-sm);
+    }
+    .nav-cta:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--navy); }
+    .nav-cta:active { transform: translate(1px, 1px); box-shadow: 2px 2px 0 var(--navy); }
+
+    /* ─── Hero ───────────────────────────────────────────────────── */
+    .hero {
+      background: var(--lime);
+      border-bottom: 2px solid var(--navy);
+      padding: 64px 48px 0;
+      overflow: hidden;
+    }
+    .hero-inner {
+      max-width: 1040px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 460px;
+      gap: 56px; align-items: end;
+    }
+    .hero-copy { padding-bottom: 64px; }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--navy); color: var(--lime);
+      border-radius: var(--r-pill); padding: 6px 16px;
+      font-size: 0.72rem; font-weight: 800; letter-spacing: 0.1em;
+      text-transform: uppercase; margin-bottom: 28px;
+    }
+    .hero-eyebrow::before { content: '▶'; font-size: 0.5rem; }
+    .hero h1 {
+      font-size: clamp(3rem, 5.5vw, 5rem);
+      font-weight: 900;
+      line-height: 0.93;
+      letter-spacing: -0.045em;
+      color: var(--navy);
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+    .hero h1 em {
+      font-style: normal;
+      text-decoration: underline;
+      text-decoration-color: var(--orange);
+      text-decoration-thickness: 5px;
+      text-underline-offset: 4px;
+    }
+    .hero-sub {
+      font-size: 1.05rem; font-weight: 500;
+      color: var(--navy-mid); opacity: 0.75;
+      line-height: 1.65; max-width: 400px;
+      margin-bottom: 36px;
+    }
+    .hero-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .btn-hero {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--navy); color: var(--white);
+      font-weight: 800; font-size: 0.95rem;
+      border: 2px solid var(--navy); border-radius: var(--r-pill);
+      padding: 14px 30px; cursor: pointer; text-decoration: none;
+      transition: background 0.15s, transform 0.12s, box-shadow 0.12s;
+      box-shadow: var(--shadow-sm);
+    }
+    .btn-hero:hover {
+      background: var(--orange); border-color: var(--orange);
+      transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--navy);
+    }
+    .btn-hero:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--navy); }
+    .hero-note {
+      font-size: 0.8rem; color: var(--navy); opacity: 0.5; font-weight: 500;
+    }
+
+    /* ─── Hero App Panel (right column) ─────────────────────────── */
+    .hero-app-panel {
+      background: var(--white);
+      border: 2px solid var(--navy);
+      border-bottom: none;
+      border-radius: var(--r-lg) var(--r-lg) 0 0;
+      padding: 28px;
+      box-shadow: 6px 0 0 var(--navy), -2px 0 0 var(--navy);
+      /* Slight lift effect, bleeds into trust bar */
+    }
+    .panel-label {
+      font-size: 0.72rem; font-weight: 800; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--gray); margin-bottom: 16px;
+    }
+
+    /* ─── Drop Zone ──────────────────────────────────────────────── */
+    .drop-zone {
+      border: 2px dashed var(--gray-light);
+      border-radius: var(--r-md);
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+      background: var(--off-white);
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .drop-zone.dragover {
+      border-color: var(--orange);
+      background: var(--orange-pale);
+    }
+    .drop-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+      width: 100%; height: 100%;
+    }
+    .dz-icon {
+      width: 56px; height: 56px;
+      background: var(--lime); border: 2px solid var(--navy);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; margin: 0 auto 14px;
+    }
+    .dz-title { font-size: 1rem; font-weight: 800; color: var(--navy); margin-bottom: 6px; }
+    .dz-sub { font-size: 0.82rem; color: var(--gray); margin-bottom: 18px; }
+    .dz-btn {
+      background: var(--orange); color: var(--white);
+      border: 2px solid var(--navy); border-radius: var(--r-pill);
+      padding: 10px 24px; font-size: 0.88rem; font-weight: 800;
+      cursor: pointer; pointer-events: none;
+      box-shadow: var(--shadow-sm);
+    }
+    .dz-formats {
+      margin-top: 14px; font-size: 0.75rem; color: var(--gray);
+      letter-spacing: 0.04em;
+    }
+    .dz-secure {
+      margin-top: 6px; font-size: 0.72rem; color: var(--gray); opacity: 0.7;
+    }
+
+    /* ─── Processing Panel ───────────────────────────────────────── */
+    #panel-processing { display: none; }
+    .proc-file {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 20px;
+    }
+    .proc-icon {
+      width: 46px; height: 46px; flex-shrink: 0;
+      background: var(--lime); border: 2px solid var(--navy);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+    }
+    .proc-name { font-weight: 700; font-size: 0.92rem; }
+    .proc-size { font-size: 0.8rem; color: var(--gray); margin-top: 2px; }
+    .progress-track {
+      background: var(--gray-light); border: 1.5px solid var(--navy);
+      border-radius: 999px; height: 10px;
+      overflow: hidden; margin-bottom: 10px;
+    }
+    .progress-fill {
+      background: var(--lime); height: 100%;
+      width: 0%; border-radius: 999px;
+      transition: width 0.6s ease;
+      position: relative;
+    }
+    .progress-fill::after {
+      content: '';
+      position: absolute; right: 0; top: 0; bottom: 0; width: 24px;
+      background: linear-gradient(90deg, transparent, rgba(255,95,31,0.6));
+      border-radius: 0 999px 999px 0;
+      animation: glow 1.4s ease-in-out infinite;
+    }
+    @keyframes glow { 0%,100% { opacity:0.5 } 50% { opacity:1 } }
+    .progress-label { font-size: 0.83rem; color: var(--gray); font-weight: 500; }
+
+    /* ─── Result Panel ───────────────────────────────────────────── */
+    #panel-result { display: none; }
+    .result-header {
+      display: flex; justify-content: space-between;
+      align-items: flex-start; gap: 10px;
+      margin-bottom: 14px; flex-wrap: wrap;
+    }
+    .result-title-row {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.95rem; font-weight: 800;
+    }
+    .done-badge {
+      background: var(--lime); color: var(--navy);
+      border: 1.5px solid var(--navy); border-radius: var(--r-pill);
+      font-size: 0.68rem; font-weight: 800; padding: 2px 8px;
+      letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .result-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-ghost {
+      background: var(--white); color: var(--navy);
+      border: 2px solid var(--navy); border-radius: var(--r-pill);
+      padding: 8px 16px; font-size: 0.8rem; font-weight: 700;
+      cursor: pointer; transition: box-shadow 0.12s, transform 0.12s;
+    }
+    .btn-ghost:hover { box-shadow: var(--shadow-sm); transform: translate(-1px,-1px); }
+    .btn-solid {
+      background: var(--navy); color: var(--white);
+      border: 2px solid var(--navy); border-radius: var(--r-pill);
+      padding: 8px 16px; font-size: 0.8rem; font-weight: 700;
+      cursor: pointer; transition: background 0.15s, box-shadow 0.12s, transform 0.12s;
+    }
+    .btn-solid:hover {
+      background: var(--orange); border-color: var(--orange);
+      box-shadow: var(--shadow-sm); transform: translate(-1px,-1px);
+    }
+    #transcript-box {
+      background: var(--off-white); border: 1.5px solid var(--gray-light);
+      border-radius: var(--r-sm);
+      padding: 16px; font-size: 0.9rem; line-height: 1.8; color: var(--navy);
+      white-space: pre-wrap;
+      min-height: 120px; max-height: 300px; overflow-y: auto;
+    }
+    .word-count {
+      margin-top: 8px; font-size: 0.76rem; color: var(--gray);
+      text-align: right; font-weight: 500;
+    }
+    .reset-btn {
+      display: block; width: 100%; margin-top: 14px;
+      background: transparent; border: 2px solid var(--gray-light);
+      border-radius: var(--r-pill); padding: 10px;
+      font-size: 0.85rem; color: var(--gray); font-weight: 700;
+      cursor: pointer; transition: border-color 0.15s, color 0.15s;
+    }
+    .reset-btn:hover { border-color: var(--navy); color: var(--navy); }
+
+    /* ─── Trust Bar ──────────────────────────────────────────────── */
+    .trust-bar {
+      background: var(--navy);
+      border-bottom: 2px solid var(--navy);
+      padding: 14px 48px;
+      display: flex; align-items: center; justify-content: center;
+      gap: 36px; flex-wrap: wrap;
+    }
+    .trust-item {
+      font-size: 0.76rem; font-weight: 600; color: rgba(255,255,255,0.45);
+      letter-spacing: 0.06em; text-transform: uppercase;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .trust-item strong { color: var(--lime); }
+    .trust-sep { color: rgba(255,255,255,0.15); font-size: 1.2rem; }
+
+    /* ─── Sections ───────────────────────────────────────────────── */
+    .section-wrap { padding: 80px 48px; }
+    .section-wrap.alt { background: var(--off-white); border-top: 2px solid var(--gray-light); }
+    .section-inner { max-width: 1000px; margin: 0 auto; }
+    .section-eyebrow {
+      font-size: 0.72rem; font-weight: 800; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--orange); margin-bottom: 10px;
+    }
+    .section-title {
+      font-size: clamp(1.9rem, 3.5vw, 2.8rem); font-weight: 900;
+      line-height: 1.1; letter-spacing: -0.035em;
+      color: var(--navy); margin-bottom: 14px;
+    }
+    .section-sub {
+      font-size: 1rem; color: var(--gray); max-width: 520px;
+      line-height: 1.7; margin-bottom: 48px;
+    }
+
+    /* ─── Steps Grid ─────────────────────────────────────────────── */
+    .steps-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+    }
+    .step-card {
+      border: 2px solid var(--navy);
+      border-radius: var(--r-md); padding: 28px 24px;
+      position: relative; overflow: hidden;
+      transition: box-shadow 0.15s, transform 0.15s;
+    }
+    .step-card:hover { box-shadow: var(--shadow-md); transform: translate(-2px,-2px); }
+    .step-card:nth-child(1) { background: var(--lime); }
+    .step-card:nth-child(2) { background: var(--navy); }
+    .step-card:nth-child(3) { background: var(--white); }
+    .step-num {
+      font-size: 5rem; font-weight: 900; line-height: 1;
+      position: absolute; bottom: -8px; right: 16px;
+      opacity: 0.08; color: var(--navy);
+    }
+    .step-card:nth-child(2) .step-num { opacity: 0.2; color: var(--lime); }
+    .step-icon { font-size: 1.8rem; margin-bottom: 16px; }
+    .step-title {
+      font-size: 1rem; font-weight: 800; margin-bottom: 8px;
+      color: var(--navy);
+    }
+    .step-card:nth-child(2) .step-title { color: var(--white); }
+    .step-desc { font-size: 0.85rem; line-height: 1.65; color: var(--gray); }
+    .step-card:nth-child(2) .step-desc { color: rgba(255,255,255,0.55); }
+
+    /* ─── Features Grid ──────────────────────────────────────────── */
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+    }
+    .feature-card {
+      background: var(--white); border: 2px solid var(--gray-light);
+      border-radius: var(--r-md); padding: 24px;
+      transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+    }
+    .feature-card:hover {
+      border-color: var(--navy);
+      box-shadow: var(--shadow-sm);
+      transform: translate(-1px,-1px);
+    }
+    .feature-icon {
+      width: 46px; height: 46px;
+      background: var(--lime); border: 2px solid var(--navy);
+      border-radius: var(--r-sm);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; margin-bottom: 14px;
+    }
+    .feature-title { font-size: 0.92rem; font-weight: 800; margin-bottom: 8px; }
+    .feature-desc { font-size: 0.83rem; color: var(--gray); line-height: 1.65; }
+
+    /* ─── Models Table ───────────────────────────────────────────── */
+    .model-table {
+      width: 100%; border-collapse: collapse;
+      font-size: 0.88rem; border: 2px solid var(--navy);
+      border-radius: var(--r-md); overflow: hidden;
+    }
+    .model-table th {
+      background: var(--navy); color: rgba(255,255,255,0.6);
+      text-align: left; padding: 14px 18px;
+      font-size: 0.72rem; font-weight: 800;
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .model-table td { padding: 14px 18px; border-bottom: 1.5px solid var(--gray-light); }
+    .model-table tr:last-child td { border-bottom: none; }
+    .model-table tr.recommended td { background: var(--lime); }
+    .model-table tr:not(.recommended):hover td { background: var(--off-white); }
+    .model-tag {
+      background: var(--navy); color: var(--lime);
+      font-size: 0.65rem; font-weight: 800; padding: 2px 8px;
+      border-radius: var(--r-pill); margin-left: 8px;
+      letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    code {
+      background: rgba(0,0,0,0.06);
+      padding: 2px 7px; border-radius: 5px;
+      font-family: 'SFMono-Regular', Consolas, monospace;
+      font-size: 0.9em; font-weight: 700;
+    }
+
+    /* ─── Footer ─────────────────────────────────────────────────── */
+    footer {
+      background: var(--navy); color: var(--white);
+      border-top: 2px solid var(--navy);
+      padding: 48px 48px;
+    }
+    .footer-inner {
+      max-width: 1040px; margin: 0 auto;
+      display: flex; align-items: flex-start;
+      justify-content: space-between; flex-wrap: wrap; gap: 32px;
+    }
+    .footer-brand-name {
+      font-size: 1.4rem; font-weight: 900;
+      letter-spacing: -0.04em; color: var(--white);
+    }
+    .footer-brand-name span { color: var(--lime); }
+    .footer-tagline {
+      margin-top: 8px; font-size: 0.82rem;
+      color: rgba(255,255,255,0.4); line-height: 1.6;
+    }
+    .footer-links { display: flex; flex-direction: column; gap: 8px; }
+    .footer-links a {
+      font-size: 0.82rem; font-weight: 600; color: rgba(255,255,255,0.45);
+      text-decoration: none; transition: color 0.15s;
+    }
+    .footer-links a:hover { color: var(--lime); }
+    .footer-divider {
+      border: none; border-top: 1px solid rgba(255,255,255,0.1);
+      margin: 32px 0 20px;
+    }
+    .footer-bottom {
+      max-width: 1040px; margin: 0 auto;
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+    }
+    .footer-copy { font-size: 0.78rem; color: rgba(255,255,255,0.3); }
+
+    /* ─── Toast ──────────────────────────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 32px; left: 50%;
+      transform: translateX(-50%);
+      background: var(--navy); color: var(--white);
+      border: 2px solid var(--lime); border-radius: var(--r-md);
+      padding: 12px 24px; font-size: 0.88rem; font-weight: 700;
+      opacity: 0; transition: opacity 0.25s;
+      pointer-events: none; z-index: 9999;
+      box-shadow: var(--shadow-sm);
+    }
+    .toast.show { opacity: 1; }
+
+    /* ─── Responsive ─────────────────────────────────────────────── */
+    @media (max-width: 800px) {
+      nav { padding: 0 20px; }
+      .nav-links { display: none; }
+      .hero { padding: 44px 20px 0; }
+      .hero-inner { grid-template-columns: 1fr; }
+      .hero-copy { padding-bottom: 0; }
+      .hero-app-panel { margin-top: 36px; box-shadow: none; }
+      .steps-grid { grid-template-columns: 1fr; }
+      .section-wrap { padding: 60px 20px; }
+      .trust-bar { padding: 14px 20px; gap: 18px; }
+      .trust-sep { display: none; }
+      footer, .footer-inner, .footer-bottom { padding-left: 20px; padding-right: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ════════════════════════════════════════════════════════
+       NAVIGATION
+  ════════════════════════════════════════════════════════ -->
+  <nav>
+    <a class="nav-logo" href="#">AudioScript<span class="nav-logo-dot">.</span></a>
+    <ul class="nav-links">
+      <li><a href="#how-it-works">How It Works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#models">Models</a></li>
+    </ul>
+    <button class="nav-cta" onclick="triggerFileInput()">Try It Free →</button>
+  </nav>
+
+  <!-- ════════════════════════════════════════════════════════
+       HERO
+  ════════════════════════════════════════════════════════ -->
+  <section class="hero" id="app-top">
+    <div class="hero-inner">
+
+      <!-- Left: Copy -->
+      <div class="hero-copy">
+        <div class="hero-eyebrow">Powered by OpenAI Whisper</div>
+        <h1>Turn <em>Audio</em><br>Into Text.</h1>
+        <p class="hero-sub">
+          Upload any audio or video file and get an accurate, readable transcript in seconds.
+          99 languages. Fully private. Runs on your server.
+        </p>
+        <div class="hero-actions">
+          <button class="btn-hero" onclick="triggerFileInput()">Upload a File ↗</button>
+          <span class="hero-note">MP3, WAV, M4A, MP4 &amp; more</span>
+        </div>
+      </div>
+
+      <!-- Right: App Panel -->
+      <div>
+        <div class="hero-app-panel">
+
+          <!-- STATE 1: Upload (default) -->
+          <div id="panel-upload">
+            <div class="panel-label">Drop &amp; Transcribe</div>
+            <div class="drop-zone" id="dropZone">
+              <input type="file" id="fileInput"
+                accept="audio/*,video/*,.mp3,.mp4,.wav,.m4a,.ogg,.flac,.webm,.aac" />
+              <div class="dz-icon">🎙️</div>
+              <div class="dz-title">Drag your file here</div>
+              <div class="dz-sub">or click anywhere to browse</div>
+              <button class="dz-btn">Choose File</button>
+              <div class="dz-formats">MP3 · WAV · M4A · MP4 · OGG · FLAC · WEBM · AAC</div>
+              <div class="dz-secure">🔒 Files are never stored — deleted after transcription</div>
+            </div>
+          </div>
+
+          <!-- STATE 2: Processing -->
+          <div id="panel-processing">
+            <div class="panel-label">Transcribing…</div>
+            <div class="proc-file">
+              <div class="proc-icon">🎵</div>
+              <div>
+                <div class="proc-name" id="status-filename"></div>
+                <div class="proc-size" id="status-filesize"></div>
+              </div>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="progress-bar"></div>
+            </div>
+            <div class="progress-label" id="status-text">Uploading…</div>
+          </div>
+
+          <!-- STATE 3: Result -->
+          <div id="panel-result">
+            <div class="panel-label">Your Transcript</div>
+            <div class="result-header">
+              <div class="result-title-row">
+                Ready <span class="done-badge">DONE</span>
+              </div>
+              <div class="result-btns">
+                <button class="btn-ghost" onclick="copyText()">Copy</button>
+                <button class="btn-solid" onclick="downloadText()">Download .txt ↓</button>
+              </div>
+            </div>
+            <div id="transcript-box"></div>
+            <div class="word-count" id="word-count"></div>
+            <button class="reset-btn" onclick="resetApp()">↩ Transcribe Another File</button>
+          </div>
+
+        </div><!-- /hero-app-panel -->
+      </div><!-- /right col -->
+
+    </div><!-- /hero-inner -->
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════
+       TRUST BAR
+  ════════════════════════════════════════════════════════ -->
+  <div class="trust-bar">
+    <div class="trust-item">✓ <strong>100% Private</strong> — files deleted instantly</div>
+    <div class="trust-sep">·</div>
+    <div class="trust-item">✓ <strong>99 Languages</strong> auto-detected</div>
+    <div class="trust-sep">·</div>
+    <div class="trust-item">✓ <strong>Up to 200 MB</strong> per file</div>
+    <div class="trust-sep">·</div>
+    <div class="trust-item">✓ <strong>Self-Hosted</strong> — your server, your data</div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       HOW IT WORKS
+  ════════════════════════════════════════════════════════ -->
+  <div id="how-it-works" class="section-wrap">
+    <div class="section-inner">
+      <div class="section-eyebrow">Dead Simple</div>
+      <h2 class="section-title">Three Steps.<br>That's It.</h2>
+      <p class="section-sub">
+        No accounts. No subscriptions. No complexity.
+        Just audio in, text out.
+      </p>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-icon">📁</div>
+          <div class="step-title">Upload Your File</div>
+          <div class="step-desc">
+            Drag &amp; drop or browse for any audio or video file.
+            MP3, WAV, M4A, MP4, OGG, FLAC, WEBM, and AAC are all supported.
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-icon">⚡</div>
+          <div class="step-title">Whisper Transcribes</div>
+          <div class="step-desc">
+            OpenAI's Whisper model processes your audio on your own server with
+            state-of-the-art accuracy. Language is detected automatically.
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-icon">📄</div>
+          <div class="step-title">Copy or Download</div>
+          <div class="step-desc">
+            Your transcript appears instantly. Copy to clipboard or download as
+            a <code>.txt</code> file. Your audio is never saved.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       FEATURES
+  ════════════════════════════════════════════════════════ -->
+  <div id="features" class="section-wrap alt">
+    <div class="section-inner">
+      <div class="section-eyebrow">Why AudioScript</div>
+      <h2 class="section-title">Built for Privacy<br>&amp; Performance</h2>
+      <p class="section-sub">
+        AudioScript runs entirely on your infrastructure.
+        No third party ever sees your audio or your transcripts.
+      </p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🌍</div>
+          <div class="feature-title">99 Languages</div>
+          <div class="feature-desc">
+            Whisper automatically detects and transcribes audio in almost any
+            language — no configuration needed.
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <div class="feature-title">Private by Default</div>
+          <div class="feature-desc">
+            Your audio is processed on your own server and deleted
+            immediately after transcription. Zero data retention.
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <div class="feature-title">Blazing Accuracy</div>
+          <div class="feature-desc">
+            State-of-the-art Whisper models handle accents, background noise,
+            and varying audio quality with ease.
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📦</div>
+          <div class="feature-title">5 Model Sizes</div>
+          <div class="feature-desc">
+            From <code>tiny</code> (lightning fast) to <code>large</code> (best
+            accuracy) — tune the tradeoff for your needs.
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🚀</div>
+          <div class="feature-title">Self-Hosted</div>
+          <div class="feature-desc">
+            Deploy to Railway, Render, or any Docker host. Full control,
+            no SaaS fees, no vendor lock-in.
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">☁️</div>
+          <div class="feature-title">API Mode</div>
+          <div class="feature-desc">
+            No GPU? Swap in the OpenAI Whisper API with a single env variable.
+            Same interface, zero code changes.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       MODEL SIZES
+  ════════════════════════════════════════════════════════ -->
+  <div id="models" class="section-wrap">
+    <div class="section-inner">
+      <div class="section-eyebrow">Configuration</div>
+      <h2 class="section-title">Speed vs. Accuracy —<br>You Decide</h2>
+      <p class="section-sub">
+        Set the <code>MODEL_SIZE</code> environment variable on your server.
+        Start with <code>base</code> — it's fast and accurate enough for most use cases.
+      </p>
+      <div style="overflow-x: auto;">
+        <table class="model-table">
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Speed</th>
+              <th>Accuracy</th>
+              <th>RAM Needed</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>tiny</code></td>
+              <td style="color:var(--orange);font-weight:700;">Fastest</td>
+              <td>Good</td>
+              <td style="color:var(--gray);">~1 GB</td>
+            </tr>
+            <tr class="recommended">
+              <td><code>base</code> <span class="model-tag">Recommended</span></td>
+              <td style="font-weight:700;">Fast</td>
+              <td>Better</td>
+              <td>~1 GB</td>
+            </tr>
+            <tr>
+              <td><code>small</code></td>
+              <td>Medium</td>
+              <td>Great</td>
+              <td style="color:var(--gray);">~2 GB</td>
+            </tr>
+            <tr>
+              <td><code>medium</code></td>
+              <td>Slower</td>
+              <td>Excellent</td>
+              <td style="color:var(--gray);">~5 GB</td>
+            </tr>
+            <tr>
+              <td><code>large</code></td>
+              <td style="color:var(--gray);">Slowest</td>
+              <td>Best</td>
+              <td style="color:var(--gray);">~10 GB</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       FOOTER
+  ════════════════════════════════════════════════════════ -->
+  <footer>
+    <div class="footer-inner">
+      <div>
+        <div class="footer-brand-name">AudioScript<span>.</span></div>
+        <div class="footer-tagline">
+          Self-hosted audio transcription.<br>
+          Powered by OpenAI Whisper.<br>
+          Your server. Your data. Always.
+        </div>
+      </div>
+      <div>
+        <div style="font-size:0.72rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:12px;">Deploy</div>
+        <div class="footer-links">
+          <a href="https://railway.app" target="_blank" rel="noopener">Railway (Recommended) ↗</a>
+          <a href="https://render.com" target="_blank" rel="noopener">Render ↗</a>
+          <a href="https://vercel.com" target="_blank" rel="noopener">Vercel (Frontend) ↗</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:0.72rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:12px;">Stack</div>
+        <div class="footer-links">
+          <a href="https://fastapi.tiangolo.com" target="_blank" rel="noopener">FastAPI ↗</a>
+          <a href="https://github.com/openai/whisper" target="_blank" rel="noopener">OpenAI Whisper ↗</a>
+          <a href="https://supabase.com" target="_blank" rel="noopener">Supabase (optional) ↗</a>
+        </div>
+      </div>
+    </div>
+    <hr class="footer-divider" />
+    <div class="footer-bottom">
+      <div class="footer-copy">© 2025 AudioScript. All rights reserved.</div>
+      <div class="footer-copy">Built with FastAPI + Whisper · MIT License</div>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- ════════════════════════════════════════════════════════
+       JAVASCRIPT
+  ════════════════════════════════════════════════════════ -->
+  <script>
+    // ─── Config ──────────────────────────────────────────────────────────────
+    //
+    // PRODUCTION STEP (Option B only):
+    // If your backend is hosted separately (e.g. Railway) and your frontend
+    // is on Vercel/Netlify, change '' below to your Railway URL, e.g.:
+    //   const API_BASE = 'https://audioscript-production.up.railway.app';
+    //
+    // If everything is on one Railway server (Option A), leave this as ''.
+    //
+    const API_BASE = '';
+
+    // ─── DOM Refs ─────────────────────────────────────────────────────────────
+    const dropZone      = document.getElementById('dropZone');
+    const fileInput     = document.getElementById('fileInput');
+    const panelUpload   = document.getElementById('panel-upload');
+    const panelProc     = document.getElementById('panel-processing');
+    const panelResult   = document.getElementById('panel-result');
+    let   currentFile   = '';
+
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+    function showPanel(name) {
+      panelUpload.style.display  = name === 'upload'     ? 'block' : 'none';
+      panelProc.style.display    = name === 'processing' ? 'block' : 'none';
+      panelResult.style.display  = name === 'result'     ? 'block' : 'none';
+    }
+
+    function triggerFileInput() {
+      fileInput.click();
+    }
+
+    // ─── Drag & Drop ──────────────────────────────────────────────────────────
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) handleFile(fileInput.files[0]);
+    });
+
+    // ─── Main Flow ─────────────────────────────────────────────────────────────
+    function handleFile(file) {
+      currentFile = file.name;
+      document.getElementById('status-filename').textContent = file.name;
+      document.getElementById('status-filesize').textContent =
+        (file.size / 1024 / 1024).toFixed(2) + ' MB';
+      setProgress(18, 'Uploading file…');
+      showPanel('processing');
+      uploadAndTranscribe(file);
+    }
+
+    function setProgress(pct, msg) {
+      document.getElementById('progress-bar').style.width = pct + '%';
+      document.getElementById('status-text').textContent = msg;
+    }
+
+    async function uploadAndTranscribe(file) {
+      const form = new FormData();
+      form.append('file', file);
+
+      try {
+        setProgress(38, 'File received. Starting transcription…');
+        let pct = 40;
+        const ticker = setInterval(() => {
+          if (pct < 87) {
+            pct += Math.random() * 4 + 1;
+            setProgress(Math.min(pct, 87), 'Transcribing… (larger files take longer)');
+          }
+        }, 2800);
+
+        const res = await fetch(API_BASE + '/transcribe', {
+          method: 'POST',
+          body: form,
+        });
+        clearInterval(ticker);
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+          throw new Error(err.detail || 'Transcription failed');
+        }
+
+        const data = await res.json();
+        setProgress(100, 'Done!');
+        setTimeout(() => showResult(data.text), 550);
+
+      } catch (err) {
+        showPanel('upload');
+        showToast('Error: ' + err.message);
+      }
+    }
+
+    function showResult(text) {
+      const clean  = text.trim();
+      const words  = clean.split(/\s+/).filter(Boolean).length;
+      const chars  = clean.length;
+      document.getElementById('transcript-box').textContent = clean;
+      document.getElementById('word-count').textContent =
+        words.toLocaleString() + ' words · ' + chars.toLocaleString() + ' characters';
+      showPanel('result');
+    }
+
+    function copyText() {
+      const text = document.getElementById('transcript-box').textContent;
+      navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard!'));
+    }
+
+    function downloadText() {
+      const text = document.getElementById('transcript-box').textContent;
+      const blob = new Blob([text], { type: 'text/plain' });
+      const a    = document.createElement('a');
+      a.href     = URL.createObjectURL(blob);
+      a.download = currentFile.replace(/\.[^.]+$/, '') + '_transcript.txt';
+      a.click();
+    }
+
+    function resetApp() {
+      fileInput.value = '';
+      showPanel('upload');
+      document.getElementById('app-top').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3500);
+    }
+  </script>
+
+</body>
+</html>

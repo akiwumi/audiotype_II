@@ -1,0 +1,14 @@
+# Railway deployment config
+# Docs: https://docs.railway.app/reference/config-as-code
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+# Railway injects $PORT automatically — no need to hardcode it
+startCommand = "uvicorn app:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/health"
+healthcheckTimeout = 300        # seconds — Whisper model load can be slow on cold start
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
