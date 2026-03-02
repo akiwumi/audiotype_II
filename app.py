@@ -44,18 +44,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Load model (only when running locally, not via OpenAI API) ───────────────
-whisper_model = None
+# ── Validate OpenAI API key early if needed ──────────────────────────────────
+if USE_OPENAI_API and not OPENAI_API_KEY:
+    raise RuntimeError("USE_OPENAI_API=true but OPENAI_API_KEY is not set.")
 
-if not USE_OPENAI_API:
-    import whisper
-    print(f"Loading Whisper '{MODEL_SIZE}' model… (first run downloads it)")
-    whisper_model = whisper.load_model(MODEL_SIZE)
-    print("Whisper model ready.")
-else:
-    if not OPENAI_API_KEY:
-        raise RuntimeError("USE_OPENAI_API=true but OPENAI_API_KEY is not set.")
-    print("Using OpenAI Whisper API.")
+# ── Lazy model loader ─────────────────────────────────────────────────────────
+# The model is loaded on the first transcription request, NOT at startup.
+# This lets the app pass Railway's health check immediately instead of
+# waiting 30–60 s for Whisper to initialise before the server even starts.
+_whisper_model = None
+
+def _get_whisper_model():
+    global _whisper_model
+    if _whisper_model is None:
+        import whisper
+        print(f"Loading Whisper '{MODEL_SIZE}' model…")
+        _whisper_model = whisper.load_model(MODEL_SIZE)
+        print("Whisper model ready.")
+    return _whisper_model
 
 # ── Allowed audio/video extensions ──────────────────────────────────────────
 ALLOWED_EXTENSIONS = {
@@ -450,7 +456,7 @@ async def transcribe(file: UploadFile = File(...)):
 
 
 def _transcribe_local(path: str) -> str:
-    result = whisper_model.transcribe(path)
+    result = _get_whisper_model().transcribe(path)
     return result["text"]
 
 
