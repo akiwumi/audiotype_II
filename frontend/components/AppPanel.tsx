@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useRef, useCallback, type DragEvent, type ChangeEvent } from 'react'
+import { Document, Packer, Paragraph, TextRun } from 'docx'
+import { jsPDF } from 'jspdf'
 
 type Panel = 'upload' | 'processing' | 'result'
 
@@ -94,12 +96,45 @@ export default function AppPanel() {
     navigator.clipboard.writeText(transcript).then(() => showToast('Copied to clipboard!'))
   }, [transcript, showToast])
 
+  const getBaseName = () => currentFile.current.replace(/\.[^.]+$/, '') + '_transcript'
+
   const downloadText = useCallback(() => {
     const blob = new Blob([transcript], { type: 'text/plain' })
     const a    = document.createElement('a')
     a.href     = URL.createObjectURL(blob)
-    a.download = currentFile.current.replace(/\.[^.]+$/, '') + '_transcript.txt'
+    a.download = getBaseName() + '.txt'
     a.click()
+  }, [transcript])
+
+  const downloadDocx = useCallback(async () => {
+    const paragraphs = transcript
+      .split(/\n/)
+      .map((line) => new Paragraph({ children: [new TextRun(line || ' ')] }))
+    const doc = new Document({
+      sections: [{ properties: {}, children: paragraphs }],
+    })
+    const blob = await Packer.toBlob(doc)
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = getBaseName() + '.docx'
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }, [transcript])
+
+  const downloadPdf = useCallback(() => {
+    const doc = new jsPDF()
+    const lines = doc.splitTextToSize(transcript, 190)
+    let y = 10
+    const pageHeight = doc.internal.pageSize.height
+    for (const line of lines) {
+      if (y > pageHeight - 15) {
+        doc.addPage()
+        y = 10
+      }
+      doc.text(line, 10, y)
+      y += 7
+    }
+    doc.save(getBaseName() + '.pdf')
   }, [transcript])
 
   const reset = useCallback(() => {
@@ -172,7 +207,9 @@ export default function AppPanel() {
               </div>
               <div className="result-btns">
                 <button className="btn-ghost" onClick={copyText}>Copy</button>
-                <button className="btn-solid" onClick={downloadText}>Download .txt ↓</button>
+                <button className="btn-ghost" onClick={downloadText}>TXT</button>
+                <button className="btn-ghost" onClick={downloadDocx}>DOCX</button>
+                <button className="btn-ghost" onClick={downloadPdf}>PDF</button>
               </div>
             </div>
             <div className="transcript-box">{transcript}</div>
