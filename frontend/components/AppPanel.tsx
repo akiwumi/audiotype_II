@@ -51,7 +51,8 @@ export default function AppPanel() {
         }
       }, 2800)
 
-      const res = await fetch('/api/transcribe', { method: 'POST', body: formData })
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE ?? ''
+      const res = await fetch(`${apiBase}/transcribe`, { method: 'POST', body: formData })
       clearInterval(ticker)
 
       if (!res.ok) {
