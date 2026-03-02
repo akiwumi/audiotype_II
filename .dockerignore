@@ -1,0 +1,20 @@
+# Secrets — never bake these into the image
+.env
+.env.*
+
+# Dev/docs files — not needed at runtime
+*.md
+*.webp
+.gitignore
+
+# Git history
+.git/
+
+# Claude workspace files
+.claude/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
