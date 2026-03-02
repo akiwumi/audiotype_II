@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, type DragEvent, type ChangeEvent } from 'react'
 
 type Panel = 'upload' | 'processing' | 'result'
 
@@ -77,15 +77,15 @@ export default function AppPanel() {
   }, [showToast])
 
   // ── Drag & drop ──────────────────────────────────────────────────────────
-  const onDragOver  = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(true) }, [])
+  const onDragOver  = useCallback((e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragging(true) }, [])
   const onDragLeave = useCallback(() => setIsDragging(false), [])
-  const onDrop      = useCallback((e: React.DragEvent) => {
+  const onDrop      = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     setIsDragging(false)
     if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0])
   }, [handleFile])
 
-  const onInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const onInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) handleFile(e.target.files[0])
   }, [handleFile])
 
