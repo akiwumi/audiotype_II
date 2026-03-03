@@ -1,14 +1,12 @@
 """
 AudioScript – Audio to Text Transcriber
 ----------------------------------------
-Self-hosted web app powered by OpenAI Whisper (local) or the OpenAI Whisper API.
+Web app powered by Groq's Whisper API for fast transcription.
 
 Environment variables (set in .env or your hosting dashboard):
-  MODEL_SIZE       Whisper model: tiny | base | small | medium | large  (default: base)
-  USE_OPENAI_API   Set to "true" to use OpenAI's Whisper API instead of local model
-  OPENAI_API_KEY   Required only when USE_OPENAI_API=true
+  GROQ_API_KEY     Required — get one free at console.groq.com
   MAX_FILE_MB      Max upload size in MB (default: 200)
-  ALLOWED_ORIGINS  Comma-separated CORS origins, e.g. https://myapp.vercel.app
+  ALLOWED_ORIGINS  Comma-separated CORS origins, e.g. https://myapp.onrender.com
                    Defaults to * (open) — lock this down in production!
 
 Run locally:   uvicorn app:app --reload
@@ -17,24 +15,24 @@ Production:    uvicorn app:app --host 0.0.0.0 --port $PORT
 
 import os
 import pathlib
-import shutil
 import tempfile
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 
 # ── Config from environment ─────────────────────────────────────────────────
-MODEL_SIZE      = os.getenv("MODEL_SIZE", "base")
-USE_OPENAI_API  = os.getenv("USE_OPENAI_API", "false").lower() == "true"
-OPENAI_API_KEY  = os.getenv("OPENAI_API_KEY", "")
+GROQ_API_KEY    = os.getenv("GROQ_API_KEY", "")
 MAX_FILE_MB     = int(os.getenv("MAX_FILE_MB", "200"))
 MAX_FILE_BYTES  = MAX_FILE_MB * 1024 * 1024
 RAW_ORIGINS     = os.getenv("ALLOWED_ORIGINS", "*")
 ALLOWED_ORIGINS = [o.strip() for o in RAW_ORIGINS.split(",")] if RAW_ORIGINS != "*" else ["*"]
 
+if not GROQ_API_KEY:
+    raise RuntimeError("GROQ_API_KEY is not set. Get a free key at console.groq.com")
+
 # ── App ──────────────────────────────────────────────────────────────────────
-app = FastAPI(title="AudioScript", version="1.0.0")
+app = FastAPI(title="AudioScript", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -43,25 +41,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# ── Validate OpenAI API key early if needed ──────────────────────────────────
-if USE_OPENAI_API and not OPENAI_API_KEY:
-    raise RuntimeError("USE_OPENAI_API=true but OPENAI_API_KEY is not set.")
-
-# ── Lazy model loader ─────────────────────────────────────────────────────────
-# The model is loaded on the first transcription request, NOT at startup.
-# This lets the app pass Railway's health check immediately instead of
-# waiting 30–60 s for Whisper to initialise before the server even starts.
-_whisper_model = None
-
-def _get_whisper_model():
-    global _whisper_model
-    if _whisper_model is None:
-        import whisper
-        print(f"Loading Whisper '{MODEL_SIZE}' model…")
-        _whisper_model = whisper.load_model(MODEL_SIZE)
-        print("Whisper model ready.")
-    return _whisper_model
 
 # ── Allowed audio/video extensions ──────────────────────────────────────────
 ALLOWED_EXTENSIONS = {
@@ -408,7 +387,7 @@ HTML = _html_file.read_text(encoding="utf-8") if _html_file.exists() else """
 # ── Health check ─────────────────────────────────────────────────────────────
 @app.get("/health")
 async def health():
-    return {"status": "ok", "model": MODEL_SIZE, "mode": "openai_api" if USE_OPENAI_API else "local"}
+    return {"status": "ok", "mode": "groq"}
 
 
 # ── Serve frontend ────────────────────────────────────────────────────────────
@@ -439,10 +418,7 @@ async def transcribe(file: UploadFile = File(...)):
             tmp.write(content)
             tmp_path = tmp.name
 
-        if USE_OPENAI_API:
-            text = _transcribe_via_openai_api(tmp_path, file.filename)
-        else:
-            text = _transcribe_local(tmp_path)
+        text = _transcribe_via_groq(tmp_path, file.filename)
 
         return JSONResponse({"text": text})
 
@@ -455,17 +431,12 @@ async def transcribe(file: UploadFile = File(...)):
             os.unlink(tmp_path)
 
 
-def _transcribe_local(path: str) -> str:
-    result = _get_whisper_model().transcribe(path)
-    return result["text"]
-
-
-def _transcribe_via_openai_api(path: str, filename: str) -> str:
-    from openai import OpenAI
-    client = OpenAI(api_key=OPENAI_API_KEY)
+def _transcribe_via_groq(path: str, filename: str) -> str:
+    from groq import Groq
+    client = Groq(api_key=GROQ_API_KEY)
     with open(path, "rb") as f:
-        response = client.audio.transcriptions.create(
-            model="whisper-1",
+        transcription = client.audio.transcriptions.create(
             file=(filename, f),
+            model="whisper-large-v3-turbo",
         )
-    return response.text
+    return transcription.text
